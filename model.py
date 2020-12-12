@@ -24,6 +24,14 @@ class ConvModel(Model):
 
         return x
     
+def contrastive_loss_with_margin(margin):
+    def contrastive_loss(y_true, y_pred):
+        square_pred = K.square(y_pred)
+        margin_square = K.square(K.maximum(margin - y_pred, 0))
+        return K.mean(y_true * square_pred + (1 - y_true) * margin_square)
+    return contrastive_loss
+    
+    
 def calculate_distance(x):
     return K.sqrt(K.sum(K.square(x[0] - x[1]), axis=1, keepdims=True))
 
@@ -43,9 +51,8 @@ def siamese(input_shape=None):
     right_embedding = conv_model(right_image)
 
     distance = Lambda(calculate_distance, output_shape=distance_shape)([left_embedding, right_embedding])
-    pred = Dense(1, activation="sigmoid")(distance)
 
-    model = Model(inputs=[left_image, right_image], outputs=pred)
+    model = Model(inputs=[left_image, right_image], outputs=distance)
 
     return model
 
